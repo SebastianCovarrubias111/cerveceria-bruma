@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cuenta | Cervecería Bruma</title><meta name="description" content="Cerveza artesanal del sur de Chile. Venta exclusiva para mayores de 18 años.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600&family=IBM+Plex+Mono&family=Work+Sans:wght@400;600&display=swap" rel="stylesheet">
+<script>if(!matchMedia("(prefers-reduced-motion: reduce)").matches){document.documentElement.classList.add("anim");setTimeout(function(){document.documentElement.classList.remove("anim")},6000)}</script><link rel="stylesheet" href="css/style.css"></head><body><div id="cortina" aria-hidden="true"><span class="marca">BRUMA</span><span id="cuenta">0</span></div>
+<header><a class="logo" href="index.html" aria-label="Cervecería Bruma, inicio">BRUMA</a>
+<button id="btn-menu" aria-label="Abrir menú" aria-expanded="false">☰</button>
+<nav aria-label="Principal"><ul><li><a href="index.html">Inicio</a></li><li><a href="catalogo.html">Catálogo</a></li><li><a href="nosotros.html">Nosotros</a></li><li><a href="contacto.html">Contacto</a></li><li><a href="envios.html">Envíos</a></li><li><a href="login.html">Cuenta</a></li><li><a href="carrito.html" aria-label="Carrito de compras">Carrito<span class="contador" data-contador>0</span></a></li></ul></nav></header>
+<main>
+<section><h1 style="font-size:clamp(2rem,6vw,4rem);margin-bottom:1.5rem">Mi cuenta</h1>
+<div class="pestanas" role="group"><button class="activo" data-pestana="login">Iniciar sesión</button><button data-pestana="registro">Registrarse</button></div>
+<form id="form-login" data-panel="login" novalidate><div><label for="l-correo">Correo</label><input id="l-correo" name="correo" type="email" autocomplete="email"></div><div><label for="l-clave">Contraseña</label><input id="l-clave" name="clave" type="password" autocomplete="current-password"></div><button class="btn" type="submit">Iniciar sesión</button><div class="estado" role="status"></div></form>
+<form id="form-registro" data-panel="registro" data-ok="Cuenta creada. Edad verificada: ya puedes comprar." hidden novalidate><div><label for="r-nombre">Nombre</label><input id="r-nombre" name="nombre" autocomplete="name"></div><div><label for="r-correo">Correo</label><input id="r-correo" name="correo" type="email" autocomplete="email"></div><div><label for="r-clave">Contraseña</label><input id="r-clave" name="clave" type="password" autocomplete="new-password"></div><div><label for="r-nac">Fecha de nacimiento</label><input id="r-nac" name="nacimiento" type="date" autocomplete="bday"></div><button class="btn" type="submit">Crear cuenta</button><div class="estado" role="status"></div></form></section>
+</main>
+<footer><div><strong>Cervecería Bruma</strong><br>Cerveza artesanal del sur de Chile.<br>Venta exclusiva para mayores de 18 años.</div>
+<div>Valdivia, Región de Los Ríos<br>Lunes a viernes, 9:00 – 18:00<br><a href="mailto:hola@cerveceriabruma.cl">hola@cerveceriabruma.cl</a></div>
+<div><a href="https://instagram.com">Instagram</a> · <a href="https://facebook.com">Facebook</a><br>© <span data-anio>2026</span> Cervecería Bruma</div></footer>
+<script src="js/productos.js"></script><script src="js/carrito.js"></script><script src="js/validaciones.js"></script><script src="js/main.js"></script><script src="js/animaciones.js"></script></body></html>
