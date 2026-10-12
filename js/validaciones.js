@@ -27,10 +27,24 @@ conectar("form-newsletter",{correo:rCorreo},f=>f.reset());
 /* Si ya hay sesión, no tiene sentido ver el login */
 if(sesion()&&document.getElementById("form-login"))location.replace("catalogo.html");
 
+/* Selector de fecha de nacimiento (funciona en PC y celular) */
+const sd=document.getElementById("r-dia");
+if(sd){const sm=document.getElementById("r-mes"),sa=document.getElementById("r-anio"),oculto=document.querySelector('#form-registro [name="nacimiento"]');
+const meses=["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const op=(s,v,t)=>s.add(new Option(t,v));
+for(let d=1;d<=31;d++)op(sd,d,d);
+meses.forEach((m,i)=>op(sm,i+1,m));
+for(let a=new Date().getFullYear();a>=1920;a--)op(sa,a,a);
+const unir=()=>{const d=+sd.value,m=+sm.value,a=+sa.value;
+if(!d||!m||!a){oculto.value="";return}
+const f=new Date(a,m-1,d);
+oculto.value=f.getFullYear()===a&&f.getMonth()===m-1&&f.getDate()===d?`${a}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`:"invalida"};
+[sd,sm,sa].forEach(s=>s.addEventListener("change",unir))}
+
 /* Registro */
 const reg=document.getElementById("form-registro");
 if(reg)reg.addEventListener("submit",async e=>{e.preventDefault();
-if(!validar(reg,{nombre:rNombre,correo:rCorreo,clave:rClave,nacimiento:req("fecha de nacimiento",v=>calcularEdad(v)>=18?"":"Debes tener 18 años o más para registrarte.")}))return;
+if(!validar(reg,{nombre:rNombre,correo:rCorreo,clave:rClave,nacimiento:req("fecha de nacimiento",v=>v==="invalida"?"Esa fecha no existe, revísala.":calcularEdad(v)>=18?"":"Debes tener 18 años o más para registrarte.")}))return;
 const correo=reg.elements.correo.value.trim().toLowerCase();
 if(usuarios().some(u=>u.correo===correo))return msg(reg,"Ese correo ya tiene una cuenta. Inicia sesión.");
 const u={nombre:reg.elements.nombre.value.trim(),correo,clave:await hash(reg.elements.clave.value)};
@@ -67,4 +81,4 @@ if(!r.ok)throw new Error();
 msg(fe,"¡Solicitud enviada! Te contactaremos al correo para coordinar el despacho.",true);
 localStorage.removeItem("brumaCarrito");actualizarContador()}
 catch{msg(fe,"No pudimos enviar la solicitud. Revisa tu conexión e intenta de nuevo.");btn.disabled=false}})}}
-});
+}); 
