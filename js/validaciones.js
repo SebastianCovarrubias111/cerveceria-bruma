@@ -11,7 +11,18 @@ const rNombre=req("nombre",v=>RX.nombre.test(v)?"":"Usa solo letras (mínimo 3 c
 const rClave=req("contraseña",v=>v.length>=8&&/[A-Za-z]/.test(v)&&/\d/.test(v)?"":"Usa al menos 8 caracteres, con letras y números.");
 
 /* ---------- Cuentas y sesión ---------- */
-async function hash(t){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+function sha256(t){
+const m=new TextEncoder().encode(t),l=m.length,n=(l+9+63>>6)<<6,u=new Uint8Array(n);u.set(m);u[l]=128;
+const dv=new DataView(u.buffer);dv.setUint32(n-4,l*8>>>0);dv.setUint32(n-8,Math.floor(l*8/4294967296));
+const K=[],H=[],P=[];for(let c=2;K.length<64;c++)if(P.every(q=>c%q)){P.push(c);if(H.length<8)H.push(Math.pow(c,.5)*4294967296|0);K.push(Math.pow(c,1/3)*4294967296|0)}
+const w=new Int32Array(64),h=H.slice(),R=(x,k)=>x>>>k|x<<32-k;
+for(let o=0;o<n;o+=64){for(let i=0;i<16;i++)w[i]=dv.getInt32(o+i*4);
+for(let i=16;i<64;i++){const a=w[i-15],c=w[i-2];w[i]=w[i-16]+(R(a,7)^R(a,18)^a>>>3)+w[i-7]+(R(c,17)^R(c,19)^c>>>10)|0}
+let[a,b,c,d,e,f,g,k]=h;
+for(let i=0;i<64;i++){const t1=k+(R(e,6)^R(e,11)^R(e,25))+(e&f^~e&g)+K[i]+w[i]|0,t2=(R(a,2)^R(a,13)^R(a,22))+(a&b^a&c^b&c)|0;k=g;g=f;f=e;e=d+t1|0;d=c;c=b;b=a;a=t1+t2|0}
+[a,b,c,d,e,f,g,k].forEach((x,i)=>h[i]=h[i]+x|0)}
+return h.map(x=>(x>>>0).toString(16).padStart(8,"0")).join("")}
+async function hash(t){if(window.crypto&&crypto.subtle){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch{}}return sha256(t)}
 const usuarios=()=>{try{return JSON.parse(localStorage.getItem("brumaUsuarios"))||[]}catch{return[]}};
 const sesion=()=>{try{return JSON.parse(localStorage.getItem("brumaSesion"))}catch{return null}};
 function msg(f,texto,ok){const m=f.querySelector(".estado");m.className="estado "+(ok?"mensaje-ok":"mensaje-error");m.textContent=texto}
@@ -70,15 +81,13 @@ if(fe){const s=sesion();
 if(!s)document.getElementById("envio-bloqueo").hidden=false;
 else{fe.hidden=false;fe.elements.nombre.value=s.nombre;fe.elements.correo.value=s.correo;
 let tot=0;const lineas=obtenerCarrito().map(l=>{const p=CATALOGO_CERVEZAS.find(x=>x.id===l.id);tot+=p.precio*l.cantidad;return`${l.cantidad} x ${p.nombre} (${CLP(p.precio)})`});
-const pedido=lineas.length?lineas.join("\n")+"\nSubtotal: "+CLP(tot):"(sin productos en el carrito)";
+const pedido=lineas.length?lineas.join("\n")+"\nSubtotal: "+CLP(tot)+"\nDespacho: "+(calcularDespacho(tot)?CLP(calcularDespacho(tot)):"Gratis")+"\nTotal a pagar: "+CLP(tot+calcularDespacho(tot)):"(sin productos en el carrito)";
 document.getElementById("e-pedido").textContent="Tu pedido:\n"+pedido;
 fe.addEventListener("submit",async e=>{e.preventDefault();
 if(!validar(fe,{nombre:rNombre,telefono:req("teléfono",v=>RX.tel.test(v)?"":"Teléfono inválido (8 a 12 dígitos)."),region:req("región"),comuna:req("comuna"),direccion:req("dirección",v=>v.length>=5?"":"Escribe calle y número.")}))return;
-const btn=fe.querySelector("button");btn.disabled=true;const v=n=>fe.elements[n].value.trim();
-try{const r=await fetch(FORMSPREE_URL,{method:"POST",headers:{"Content-Type":"application/json",Accept:"application/json"},
-body:JSON.stringify({_subject:"Nueva solicitud de envío - Bruma",nombre:v("nombre"),email:v("correo"),telefono:v("telefono"),direccion:`${v("direccion")}, ${v("comuna")}, ${v("region")}`,referencia:v("referencia"),pedido})});
-if(!r.ok)throw new Error();
-msg(fe,"¡Solicitud enviada! Te contactaremos al correo para coordinar el despacho.",true);
-localStorage.removeItem("brumaCarrito");actualizarContador()}
-catch{msg(fe,"No pudimos enviar la solicitud. Revisa tu conexión e intenta de nuevo.");btn.disabled=false}})}}
+const btn=fe.querySelector("button");const v=n=>fe.elements[n].value.trim();
+if(!obtenerCarrito().length)return msg(fe,"Tu carrito está vacío. Agrega productos antes de pagar.");
+btn.disabled=true;msg(fe,"Conectando con Webpay…",true);
+try{await iniciarPagoWebpay({nombre:v("nombre"),correo:v("correo"),telefono:v("telefono"),region:v("region"),comuna:v("comuna"),direccion:v("direccion"),referencia:v("referencia")})}
+catch(err){msg(fe,err.message||"No pudimos iniciar el pago. Revisa tu conexión e intenta de nuevo.");btn.disabled=false}})}}
 }); 

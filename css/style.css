@@ -85,3 +85,11 @@ nav .btn{padding:.35rem .9rem;font-size:.9rem}
 #cursor.grande{width:72px;height:72px;margin:-36px 0 0 -36px;background:rgba(232,172,78,.15)}
 #cursor-punto{width:6px;height:6px;margin:-3px 0 0 -3px;background:var(--dorado)}
 @media(prefers-reduced-motion:reduce){#niebla,#progreso,#cortina,.marquee div{display:none!important}}
+
+/* Método de pago / resultado Webpay */
+.metodo-pago{border:1px solid var(--linea);border-radius:8px;padding:1rem}
+.metodo-pago legend{font-family:var(--f-utilitaria);font-size:.85rem;color:var(--dorado);padding:0 .5rem}
+.opcion-pago{display:flex;gap:.8rem;align-items:flex-start;cursor:pointer;margin:0}
+.opcion-pago input{width:auto;margin-top:.35rem;accent-color:var(--ambar)}
+.opcion-pago small{display:block;opacity:.8;font-size:.85rem}
+#resultado-pago.ok h1{color:var(--dorado)}#resultado-pago.mal h1{color:#ff8a75}

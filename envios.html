@@ -8,7 +8,7 @@
 <button id="btn-menu" aria-label="Abrir menú" aria-expanded="false">☰</button>
 <nav aria-label="Principal"><ul><li><a href="index.html">Inicio</a></li><li><a href="catalogo.html">Catálogo</a></li><li><a href="nosotros.html">Nosotros</a></li><li><a href="contacto.html">Contacto</a></li><li><a href="envios.html">Envíos</a></li><li><a href="login.html">Cuenta</a></li><li><a href="carrito.html" aria-label="Carrito de compras">Carrito<span class="contador" data-contador>0</span></a></li></ul></nav></header>
 <main>
-<section><h1 style="font-size:clamp(2rem,6vw,4rem);margin-bottom:1.5rem">Envíos</h1>
+<section><h1 style="font-size:clamp(2rem,6vw,4rem);margin-bottom:1.5rem">Envío y pago</h1>
 <p id="envio-bloqueo" hidden>Para solicitar un envío, <a href="login.html">inicia sesión o regístrate</a>.</p>
 <form id="form-envio" hidden novalidate>
 <div><label for="e-nombre">Nombre de quien recibe</label><input id="e-nombre" name="nombre" autocomplete="name"></div>
@@ -19,9 +19,11 @@
 <div><label for="e-dir">Dirección (calle y número)</label><input id="e-dir" name="direccion" autocomplete="street-address"></div>
 <div><label for="e-ref">Referencias (opcional)</label><textarea id="e-ref" name="referencia" rows="3"></textarea></div>
 <div id="e-pedido" class="datos" style="white-space:pre-line"></div>
-<button class="btn" type="submit">Enviar solicitud de envío</button><div class="estado" role="status"></div></form></section>
+<fieldset class="metodo-pago"><legend>Método de pago</legend>
+<label class="opcion-pago"><input type="radio" name="metodo" value="webpay" checked><span><b>Webpay Plus</b><small>Tarjetas de crédito, débito y prepago. Pagas en el sitio seguro de Transbank.</small></span></label></fieldset>
+<button class="btn" type="submit">Pagar con Webpay</button><div class="estado" role="status"></div></form></section>
 </main>
 <footer><div><strong>Cervecería Bruma</strong><br>Cerveza artesanal del sur de Chile.<br>Venta exclusiva para mayores de 18 años.</div>
 <div>Valdivia, Región de Los Ríos<br>Lunes a viernes, 9:00 – 18:00<br><a href="mailto:hola@cerveceriabruma.cl">hola@cerveceriabruma.cl</a></div>
 <div><a href="https://instagram.com">Instagram</a> · <a href="https://facebook.com">Facebook</a><br>© <span data-anio>2026</span> Cervecería Bruma</div></footer>
-<script src="js/productos.js"></script><script src="js/carrito.js"></script><script src="js/validaciones.js"></script><script src="js/main.js"></script><script src="js/animaciones.js"></script></body></html>
+<script src="js/config.js"></script><script src="js/productos.js"></script><script src="js/carrito.js"></script><script src="js/pago.js"></script><script src="js/validaciones.js"></script><script src="js/main.js"></script><script src="js/animaciones.js"></script></body></html>
