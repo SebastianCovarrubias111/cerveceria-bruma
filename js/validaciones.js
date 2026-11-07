@@ -10,23 +10,12 @@ const rCorreo=req("correo",v=>RX.correo.test(v)?"":"Escribe un correo válido, p
 const rNombre=req("nombre",v=>RX.nombre.test(v)?"":"Usa solo letras (mínimo 3 caracteres).");
 const rClave=req("contraseña",v=>v.length>=8&&/[A-Za-z]/.test(v)&&/\d/.test(v)?"":"Usa al menos 8 caracteres, con letras y números.");
 
-/* ---------- Cuentas y sesión ---------- */
-function sha256(t){
-const m=new TextEncoder().encode(t),l=m.length,n=(l+9+63>>6)<<6,u=new Uint8Array(n);u.set(m);u[l]=128;
-const dv=new DataView(u.buffer);dv.setUint32(n-4,l*8>>>0);dv.setUint32(n-8,Math.floor(l*8/4294967296));
-const K=[],H=[],P=[];for(let c=2;K.length<64;c++)if(P.every(q=>c%q)){P.push(c);if(H.length<8)H.push(Math.pow(c,.5)*4294967296|0);K.push(Math.pow(c,1/3)*4294967296|0)}
-const w=new Int32Array(64),h=H.slice(),R=(x,k)=>x>>>k|x<<32-k;
-for(let o=0;o<n;o+=64){for(let i=0;i<16;i++)w[i]=dv.getInt32(o+i*4);
-for(let i=16;i<64;i++){const a=w[i-15],c=w[i-2];w[i]=w[i-16]+(R(a,7)^R(a,18)^a>>>3)+w[i-7]+(R(c,17)^R(c,19)^c>>>10)|0}
-let[a,b,c,d,e,f,g,k]=h;
-for(let i=0;i<64;i++){const t1=k+(R(e,6)^R(e,11)^R(e,25))+(e&f^~e&g)+K[i]+w[i]|0,t2=(R(a,2)^R(a,13)^R(a,22))+(a&b^a&c^b&c)|0;k=g;g=f;f=e;e=d+t1|0;d=c;c=b;b=a;a=t1+t2|0}
-[a,b,c,d,e,f,g,k].forEach((x,i)=>h[i]=h[i]+x|0)}
-return h.map(x=>(x>>>0).toString(16).padStart(8,"0")).join("")}
-async function hash(t){if(window.crypto&&crypto.subtle){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch{}}return sha256(t)}
-const usuarios=()=>{try{return JSON.parse(localStorage.getItem("brumaUsuarios"))||[]}catch{return[]}};
-const sesion=()=>{try{return JSON.parse(localStorage.getItem("brumaSesion"))}catch{return null}};
+/* ---------- Cuentas y sesión ----------
+ * El registro y el login los hace el backend (Spring Boot + JWT). Ver js/api.js para el manejo de la sesión. */
+const sesion=()=>Sesion.leer();
 function msg(f,texto,ok){const m=f.querySelector(".estado");m.className="estado "+(ok?"mensaje-ok":"mensaje-error");m.textContent=texto}
-function iniciarSesion(u){localStorage.setItem("brumaSesion",JSON.stringify({nombre:u.nombre,correo:u.correo}));localStorage.setItem("brumaEdadVerificada","true");location.href="catalogo.html"}
+function iniciarSesion(auth){const s=Sesion.guardar(auth);localStorage.setItem("brumaEdadVerificada","true");irA(paginaInicioPorRol(s.rol))}
+const textoError=e=>e.campos?Object.values(e.campos)[0]:e.message;
 
 function conectar(id,reglas,alOk){const f=document.getElementById(id);if(!f)return;f.addEventListener("submit",e=>{e.preventDefault();
 if(validar(f,reglas)){alOk(f);msg(f,f.dataset.ok,true)}})}
@@ -36,7 +25,7 @@ conectar("form-contacto",{nombre:rNombre,correo:rCorreo,telefono:v=>v&&!RX.tel.t
 conectar("form-newsletter",{correo:rCorreo},f=>f.reset());
 
 /* Si ya hay sesión, no tiene sentido ver el login */
-if(sesion()&&document.getElementById("form-login"))location.replace("catalogo.html");
+if(sesion()&&document.getElementById("form-login"))irA(paginaInicioPorRol(sesion().rol),true);
 
 /* Selector de fecha de nacimiento (funciona en PC y celular) */
 const sd=document.getElementById("r-dia");
@@ -52,23 +41,21 @@ const f=new Date(a,m-1,d);
 oculto.value=f.getFullYear()===a&&f.getMonth()===m-1&&f.getDate()===d?`${a}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")}`:"invalida"};
 [sd,sm,sa].forEach(s=>s.addEventListener("change",unir))}
 
-/* Registro */
+/* Registro: crea la cuenta en el backend (rol CLIENTE) y abre la sesión */
 const reg=document.getElementById("form-registro");
 if(reg)reg.addEventListener("submit",async e=>{e.preventDefault();
 if(!validar(reg,{nombre:rNombre,correo:rCorreo,clave:rClave,nacimiento:req("fecha de nacimiento",v=>v==="invalida"?"Esa fecha no existe, revísala.":calcularEdad(v)>=18?"":"Debes tener 18 años o más para registrarte.")}))return;
-const correo=reg.elements.correo.value.trim().toLowerCase();
-if(usuarios().some(u=>u.correo===correo))return msg(reg,"Ese correo ya tiene una cuenta. Inicia sesión.");
-const u={nombre:reg.elements.nombre.value.trim(),correo,clave:await hash(reg.elements.clave.value)};
-localStorage.setItem("brumaUsuarios",JSON.stringify([...usuarios(),u]));iniciarSesion(u)});
+const btn=reg.querySelector("button[type=submit]");btn.disabled=true;
+try{iniciarSesion(await api("/auth/registro",{metodo:"POST",cuerpo:{nombre:reg.elements.nombre.value.trim(),correo:reg.elements.correo.value.trim().toLowerCase(),clave:reg.elements.clave.value,fechaNacimiento:reg.elements.nacimiento.value}}))}
+catch(err){msg(reg,textoError(err));btn.disabled=false}});
 
-/* Login */
+/* Login: el backend valida y entrega el token JWT */
 const log=document.getElementById("form-login");
 if(log)log.addEventListener("submit",async e=>{e.preventDefault();
 if(!validar(log,{correo:rCorreo,clave:req("contraseña")}))return;
-const correo=log.elements.correo.value.trim().toLowerCase();
-const u=usuarios().find(x=>x.correo===correo);
-if(!u||u.clave!==await hash(log.elements.clave.value))return msg(log,"Correo o contraseña incorrectos.");
-iniciarSesion(u)});
+const btn=log.querySelector("button[type=submit]");btn.disabled=true;
+try{iniciarSesion(await api("/auth/login",{metodo:"POST",cuerpo:{correo:log.elements.correo.value.trim().toLowerCase(),clave:log.elements.clave.value}}))}
+catch(err){msg(log,err.message);btn.disabled=false}});
 
 /* Pestañas login/registro */
 document.querySelectorAll("[data-pestana]").forEach(b=>b.addEventListener("click",()=>{
@@ -78,7 +65,7 @@ document.querySelectorAll("[data-panel]").forEach(p=>p.hidden=p.dataset.panel!==
 /* Envíos */
 const fe=document.getElementById("form-envio");
 if(fe){const s=sesion();
-if(!s)document.getElementById("envio-bloqueo").hidden=false;
+if(!s||s.rol==="VENDEDOR"){const bl=document.getElementById("envio-bloqueo");if(s)bl.textContent="Tu rol (vendedor) no puede realizar compras.";bl.hidden=false}
 else{fe.hidden=false;fe.elements.nombre.value=s.nombre;fe.elements.correo.value=s.correo;
 let tot=0;const lineas=obtenerCarrito().map(l=>{const p=CATALOGO_CERVEZAS.find(x=>x.id===l.id);tot+=p.precio*l.cantidad;return`${l.cantidad} x ${p.nombre} (${CLP(p.precio)})`});
 const pedido=lineas.length?lineas.join("\n")+"\nSubtotal: "+CLP(tot)+"\nDespacho: "+(calcularDespacho(tot)?CLP(calcularDespacho(tot)):"Gratis")+"\nTotal a pagar: "+CLP(tot+calcularDespacho(tot)):"(sin productos en el carrito)";
@@ -88,6 +75,11 @@ if(!validar(fe,{nombre:rNombre,telefono:req("teléfono",v=>RX.tel.test(v)?"":"Te
 const btn=fe.querySelector("button");const v=n=>fe.elements[n].value.trim();
 if(!obtenerCarrito().length)return msg(fe,"Tu carrito está vacío. Agrega productos antes de pagar.");
 btn.disabled=true;msg(fe,"Conectando con Webpay…",true);
-try{await iniciarPagoWebpay({nombre:v("nombre"),correo:v("correo"),telefono:v("telefono"),region:v("region"),comuna:v("comuna"),direccion:v("direccion"),referencia:v("referencia")})}
-catch(err){msg(fe,err.message||"No pudimos iniciar el pago. Revisa tu conexión e intenta de nuevo.");btn.disabled=false}})}}
+const envio={nombre:v("nombre"),correo:v("correo"),telefono:v("telefono"),region:v("region"),comuna:v("comuna"),direccion:v("direccion"),referencia:v("referencia")};
+let boleta=null;
+try{/* 1) El backend crea la orden (calcula precios y descuenta stock)  2) Se redirige a Webpay para pagarla */
+boleta=await api("/boletas",{metodo:"POST",auth:true,cuerpo:{items:obtenerCarrito().map(l=>({codigo:l.id,cantidad:l.cantidad})),envio}});
+await iniciarPagoWebpay(envio,boleta.id)}
+catch(err){if(boleta)api(`/boletas/${boleta.id}/cancelar`,{metodo:"POST",auth:true}).catch(()=>{});
+msg(fe,err.message||"No pudimos iniciar el pago. Revisa tu conexión e intenta de nuevo.");btn.disabled=false}})}}
 }); 

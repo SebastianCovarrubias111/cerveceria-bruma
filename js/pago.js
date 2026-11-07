@@ -1,9 +1,10 @@
 /* Pago con Webpay Plus (Transbank). Pide al servidor crear la transacción y redirige al formulario de pago. */
-async function iniciarPagoWebpay(envio){
+async function iniciarPagoWebpay(envio,boletaId){
 const items=obtenerCarrito().map(l=>({id:l.id,cantidad:l.cantidad}));
-const r=await fetch(API_BASE+"/api/pago/crear",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({items,envio})});
+const r=await fetch(API_BASE+"/api/pago/crear",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({items,envio,boletaId})});
 const d=await r.json().catch(()=>({}));
 if(!r.ok||!d.url||!d.token)throw new Error(d.error||"No pudimos iniciar el pago. Intenta de nuevo.");
+if(boletaId)sessionStorage.setItem("brumaBoletaPendiente",boletaId);
 const f=document.createElement("form");f.method="POST";f.action=d.url;
 const i=document.createElement("input");i.type="hidden";i.name="token_ws";i.value=d.token;
 f.append(i);document.body.append(f);f.submit()}
@@ -16,6 +17,9 @@ const poner=(cls,titulo,html)=>{caja.className="resultado "+cls;caja.innerHTML=`
 const volver='<p style="margin-top:1.5rem"><a class="btn" href="carrito.html">Volver al carrito</a></p>';
 if(!orden)return poner("mal","No pudimos verificar el pago","<p>Si te cobraron, escríbenos a <a href=\"mailto:hola@cerveceriabruma.cl\">hola@cerveceriabruma.cl</a>.</p>"+volver);
 try{const r=await fetch(`${API_BASE}/api/pago/orden/${encodeURIComponent(orden)}`);if(!r.ok)throw 0;const o=await r.json();
+/* La orden creada en el backend: si el pago no se concretó, se cancela para devolver el stock */
+const bp=sessionStorage.getItem("brumaBoletaPendiente");
+if(bp){sessionStorage.removeItem("brumaBoletaPendiente");if(o.estado!=="PAGADA")api(`/boletas/${encodeURIComponent(bp)}/cancelar`,{metodo:"POST",auth:true}).catch(()=>{})}
 if(o.estado==="PAGADA"){localStorage.removeItem("brumaCarrito");actualizarContador();
 const tipo={VD:"Débito",VN:"Crédito",VC:"Crédito en cuotas",SI:"Crédito 3 cuotas sin interés",S2:"Crédito 2 cuotas sin interés",NC:"Crédito cuotas sin interés",VP:"Prepago"}[o.tipoPago]||"Tarjeta";
 poner("ok","¡Pago aprobado!",`<p>Gracias por tu compra. Coordinaremos el despacho al correo que ingresaste.</p>

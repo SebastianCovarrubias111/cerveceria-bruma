@@ -20,6 +20,10 @@ const BASE_URL = (process.env.BASE_URL || "").replace(/\/$/, "");
 const FRONTEND_URL = (process.env.FRONTEND_URL || "").replace(/\/$/, "");
 const FORMSPREE_URL = process.env.FORMSPREE_URL || "https://formspree.io/f/mvkzqlel";
 const PRODUCCION = process.env.TBK_AMBIENTE === "produccion";
+// API Spring Boot (fuente de verdad del catálogo y de las órdenes). Ej: http://localhost:8080/api/v1
+const SPRING_API_URL = (process.env.SPRING_API_URL || "").replace(/\/$/, "");
+// Llave compartida con Spring (INTERNAL_KEY) para confirmar pagos servidor a servidor
+const INTERNAL_KEY = process.env.INTERNAL_KEY || "";
 
 /* ---------- Transbank ---------- */
 function crearTransaccion() {
@@ -40,7 +44,37 @@ function cargarCatalogo() {
   const ctx = { document: { addEventListener() {} } };
   return vm.runInNewContext(fs.readFileSync(ruta, "utf8") + "\n;CATALOGO_CERVEZAS", ctx);
 }
-const CATALOGO = cargarCatalogo();
+const CATALOGO = cargarCatalogo(); // respaldo si Spring no responde
+
+/* Catálogo vigente: se lee desde la API Spring (precios de la base de datos). Si no está disponible, usa js/productos.js */
+async function obtenerCatalogo() {
+  if (SPRING_API_URL) {
+    try {
+      const r = await fetch(`${SPRING_API_URL}/productos`);
+      if (r.ok) {
+        const lista = await r.json();
+        if (Array.isArray(lista) && lista.length)
+          return lista.map((p) => ({ id: p.codigo, nombre: p.nombre, precio: p.precio }));
+      }
+    } catch (err) {
+      console.warn("No se pudo leer el catálogo de Spring; se usa js/productos.js:", err.message);
+    }
+  }
+  return CATALOGO;
+}
+
+/* Avisa a Spring que la orden fue pagada (endpoint interno protegido con X-Internal-Key) */
+async function confirmarEnSpring(o) {
+  if (!SPRING_API_URL || !INTERNAL_KEY || !o.boletaId) return;
+  try {
+    const r = await fetch(`${SPRING_API_URL}/interno/boletas/${o.boletaId}/pagada`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Internal-Key": INTERNAL_KEY },
+      body: JSON.stringify({ ordenWebpay: o.orden }),
+    });
+    if (!r.ok) console.error("Spring rechazó la confirmación de pago:", r.status);
+  } catch (err) { console.error("No se pudo confirmar el pago en Spring:", err.message); }
+}
 const despacho = (sub) => (sub >= 30000 || sub === 0 ? 0 : 3500); // misma regla que carrito.js
 
 /* ---------- Órdenes (en memoria) ----------
@@ -63,14 +97,15 @@ const texto = (v, max = 120) => String(v ?? "").trim().slice(0, max);
 
 app.post("/api/pago/crear", async (req, res) => {
   try {
-    const { items, envio } = req.body || {};
+    const { items, envio, boletaId } = req.body || {};
     if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: "El carrito está vacío." });
 
     // El monto SIEMPRE se calcula acá, nunca se confía en el total que manda el navegador.
+    const catalogo = await obtenerCatalogo();
     let subtotal = 0;
     const lineas = [];
     for (const it of items) {
-      const p = CATALOGO.find((c) => c.id === it?.id);
+      const p = catalogo.find((c) => c.id === it?.id);
       const cant = Number(it?.cantidad);
       if (!p || !Number.isInteger(cant) || cant < 1 || cant > 20)
         return res.status(400).json({ error: "Hay productos inválidos en el carrito." });
@@ -94,6 +129,7 @@ app.post("/api/pago/crear", async (req, res) => {
 
     ordenes.set(orden, {
       orden, token: r.token, monto, subtotal, despacho: envioCosto, lineas, envio: datosEnvio,
+      boletaId: Number.isInteger(boletaId) ? boletaId : null, // id de la boleta creada en Spring
       estado: "PENDIENTE", creada: new Date().toISOString(),
     });
     res.json({ url: r.url, token: r.token, orden });
@@ -129,7 +165,7 @@ app.all("/api/pago/retorno", async (req, res) => {
       tarjeta: r.card_detail?.card_number, autorizacion: r.authorization_code,
       tipoPago: r.payment_type_code, cuotas: r.installments_number, fechaPago: r.transaction_date,
     });
-    if (aprobado) { notificar(o); enviarComprobante(o); }
+    if (aprobado) { notificar(o); enviarComprobante(o); confirmarEnSpring(o); }
     return volver(o.orden, aprobado ? "ok" : "rechazado");
   } catch (err) {
     console.error("Error confirmando transacción:", err.message);

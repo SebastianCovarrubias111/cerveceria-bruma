@@ -2,6 +2,7 @@
 --f-display:'Fraunces',serif;--f-cuerpo:'Work Sans',sans-serif;--f-utilitaria:'IBM Plex Mono',monospace}
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:var(--negro-turba);color:var(--papel);font:1rem/1.6 var(--f-cuerpo)}
+[hidden]{display:none!important}
 a{color:inherit}img{max-width:100%;display:block}
 :focus-visible{outline:2px solid var(--dorado);outline-offset:3px}
 .visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
@@ -93,3 +94,18 @@ nav .btn{padding:.35rem .9rem;font-size:.9rem}
 .opcion-pago input{width:auto;margin-top:.35rem;accent-color:var(--ambar)}
 .opcion-pago small{display:block;opacity:.8;font-size:.85rem}
 #resultado-pago.ok h1{color:var(--dorado)}#resultado-pago.mal h1{color:#ff8a75}
+
+/* ---------- Panel (ADMIN / VENDEDOR) ---------- */
+.rol-VENDEDOR [data-agregar-carrito]{display:none}
+.tabla-scroll{overflow-x:auto;margin-top:1rem}
+.tabla-scroll table{min-width:640px}
+.tabla-scroll td button,.tabla-scroll td select{width:auto;height:auto;padding:.3rem .7rem;font:inherit;font-size:.85rem}
+.barra-panel{display:flex;flex-wrap:wrap;gap:.8rem;align-items:center;justify-content:space-between;margin-top:1rem}
+.chip{display:inline-block;padding:.1rem .6rem;border-radius:99px;font:.8rem var(--f-utilitaria);border:1px solid var(--linea)}
+.chip.ok{color:var(--dorado);border-color:var(--dorado)}.chip.mal{color:#ff8a75;border-color:#ff8a75}
+dialog{margin:auto;background:var(--negro-turba);color:var(--papel);border:1px solid var(--dorado);border-radius:12px;padding:1.5rem;width:min(560px,92vw);max-height:90vh;overflow:auto}
+dialog::backdrop{background:rgba(0,0,0,.7)}
+dialog form{max-width:none}
+.dlg-acciones{display:flex;gap:.8rem;justify-content:flex-end;margin-top:.5rem}
+.detalle-lista{display:grid;gap:.3rem;font-size:.95rem}.detalle-lista b{color:var(--dorado)}
+#dlg-cuerpo{display:grid;gap:1rem;margin:1rem 0}
