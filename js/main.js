@@ -1,3 +1,9 @@
+/* Respaldo de imágenes: las fotos vienen de un servicio externo (picsum.photos). Si no cargan
+ * (sin conexión, bloqueador de anuncios, servicio caído), se muestra una imagen de marca en su lugar. */
+const IMG_RESPALDO="data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="480" height="360" viewBox="0 0 480 360"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c97a3a"/><stop offset="1" stop-color="#17130f"/></linearGradient></defs><rect width="480" height="360" fill="url(#g)"/><text x="240" y="195" font-family="Georgia,serif" font-size="46" letter-spacing="10" fill="#f3ead4" text-anchor="middle">BRUMA</text></svg>');
+function usarRespaldo(img){if(img.dataset.respaldo)return;img.dataset.respaldo="1";img.src=IMG_RESPALDO}
+document.addEventListener("error",e=>{if(e.target&&e.target.tagName==="IMG")usarRespaldo(e.target)},true);
+window.addEventListener("load",()=>document.querySelectorAll("img").forEach(i=>{if(i.complete&&i.naturalWidth===0)usarRespaldo(i)}));
 document.addEventListener("DOMContentLoaded",()=>{
 const b=document.getElementById("btn-menu"),u=document.querySelector("nav ul");
 if(b)b.addEventListener("click",()=>{const a=u.classList.toggle("abierto");b.setAttribute("aria-expanded",a)});
